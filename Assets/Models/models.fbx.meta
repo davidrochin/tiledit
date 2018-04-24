@@ -10,24 +10,29 @@ ModelImporter:
     100004: structure_wall
     100006: structure_wall_door
     100008: furniture_chair
+    100010: furniture_table
     400000: //RootNode
     400002: structure_floor
     400004: structure_wall
     400006: structure_wall_door
     400008: furniture_chair
+    400010: furniture_table
     2100000: Material
     2300000: structure_floor
     2300002: structure_wall
     2300004: structure_wall_door
     2300006: furniture_chair
+    2300008: furniture_table
     3300000: structure_floor
     3300002: structure_wall
     3300004: structure_wall_door
     3300006: furniture_chair
+    3300008: furniture_table
     4300000: structure_wall_door
     4300002: structure_wall
     4300004: structure_floor
     4300006: furniture_chair
+    4300008: furniture_table
   externalObjects: {}
   materials:
     importMaterials: 1
