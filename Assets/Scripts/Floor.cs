@@ -2,32 +2,31 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Floor : MonoBehaviour {
-    [Header("Settings")]
-    public Material floorMaterial;
+[System.Serializable]
+public class Floor {
+    public Material material;
+    public List<Vector3> markers;
+    public List<GameObject> objects;
 
-    [Header("Markers")]
-    public List<Vector3> floorMarkers;
+    [HideInInspector]
+    public GameObject gameObject;
 
-    [Header("Objects")]
-    public List<GameObject> floorObjects;
-
-    void Awake() {
-        if (floorMarkers == null) floorMarkers = new List<Vector3>();
-        if (floorObjects == null) floorObjects = new List<GameObject>();
+    public Floor(GameObject gameObject) {
+        if (markers == null) markers = new List<Vector3>();
+        if (objects == null) objects = new List<GameObject>();
     }
 
     public bool AddMarker(Vector3 point) {
-        if (floorMarkers.Exists(a => a == point) == false) {
-            floorMarkers.Add(point);
+        if (markers.Exists(a => a == point) == false) {
+            markers.Add(point);
             return true;
         }
         return false;
     }
 
     public bool RemoveMarker(Vector3 point) {
-        if (floorMarkers.Exists(a => a == point) == true) {
-            floorMarkers.Remove(point);
+        if (markers.Exists(a => a == point) == true) {
+            markers.Remove(point);
             return true;
         }
         return false;
@@ -35,7 +34,7 @@ public class Floor : MonoBehaviour {
 
     public void ClearMarkers() {
         ClearObjects();
-        floorMarkers.Clear();
+        markers.Clear();
     }
 
     public void Rebuild() {
@@ -44,31 +43,31 @@ public class Floor : MonoBehaviour {
         ClearObjects();
 
         //Build
-        foreach (Vector3 point in floorMarkers) {
+        foreach (Vector3 point in markers) {
 
             //Check that is not going to overlap another floor
-            if (floorObjects.Exists(a => a.transform.position == point) == false) {
-                GameObject floor = Instantiate(Structure.GetPrefab("structure_floor"), point, Quaternion.identity);
-                floor.transform.parent = transform;
+            if (objects.Exists(a => a.transform.position == point) == false) {
+                GameObject floor = GameObject.Instantiate(Structure.GetPrefab("structure_floor"), point, Quaternion.identity);
+                floor.transform.parent = gameObject.transform;
 
                 //Asign material
-                if (floorMaterial) { floor.GetComponent<MeshRenderer>().material = floorMaterial; } else { floor.GetComponent<MeshRenderer>().material = MaterialBank.GetFloorMaterial(0); }
+                if (material) { floor.GetComponent<MeshRenderer>().material = material; } else { floor.GetComponent<MeshRenderer>().material = MaterialBank.GetFloorMaterial(0); }
 
-                floorObjects.Add(floor);
+                objects.Add(floor);
             }
 
         }
     }
 
     public void ClearObjects() {
-        foreach (GameObject go in floorObjects) {
+        foreach (GameObject go in objects) {
             if (UnityEditor.EditorApplication.isPlaying) {
-                Destroy(go);
+                GameObject.Destroy(go);
             } else {
-                DestroyImmediate(go);
+                GameObject.DestroyImmediate(go);
             }
         }
-        floorObjects.Clear();
+        objects.Clear();
     }
 
     Vector3[] GetNeighbors(Vector3 point) {
@@ -82,7 +81,7 @@ public class Floor : MonoBehaviour {
         };
 
         foreach (Vector3 possible in possibleNeighbors) {
-            if (floorMarkers.Exists(a => a == possible)) {
+            if (markers.Exists(a => a == possible)) {
                 neighbors.Add(possible);
             }
         }
@@ -90,10 +89,4 @@ public class Floor : MonoBehaviour {
         return neighbors.ToArray();
     }
 
-    private void OnDrawGizmosSelected() {
-        Gizmos.color = Color.blue;
-        foreach (Vector3 point in floorMarkers) {
-            Gizmos.DrawSphere(point, 0.1f);
-        }
-    }
 }

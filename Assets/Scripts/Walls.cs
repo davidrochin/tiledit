@@ -2,25 +2,32 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Walls : MonoBehaviour {
+[System.Serializable]
+public class Walls {
 
-    [Header("Settings")]
-    public Material wallMaterial;
+    public Material material;
 
-    [Header("Marcadores")]
     public List<Vector3> wallMarkers;
     public List<Vector3> doorMarkers;
 
-    [Header("Objetos")]
     public List<GameObject> wallObjects;
     public List<GameObject> doorObjects;
 
-    void Awake() {
-        if (wallMarkers == null) wallMarkers = new List<Vector3>();
-        if (wallObjects == null) wallObjects = new List<GameObject>();
+    [HideInInspector]
+    public GameObject gameObject;
+
+    public Walls(GameObject gameObject) {
+        this.gameObject = gameObject;
     }
 
     public bool AddMarker(Vector3 point) {
+
+        //Check that it is on a valid grid point
+        if(((point.x % 1f == 0 && point.z % 1f == 0.5f) || (point.x % 1f == 0.5 && point.z % 1f == 0)) == false) {
+            return false;
+        }
+
+        //Add to marker list only if it doesn't exist already
         if (wallMarkers.Exists(a => a == point) == false) {
             wallMarkers.Add(point);
             return true;
@@ -44,12 +51,12 @@ public class Walls : MonoBehaviour {
 
             //Revisar que no haya una pared ahi
             if (wallObjects.Exists(a => a.transform.position == point) == false) {
-                GameObject wall = Instantiate(Structure.GetPrefab("structure_wall"), point, Quaternion.identity);
-                if (point.x == 0f) { wall.transform.rotation = Quaternion.Euler(0f, 90f, 0f); }
-                wall.transform.parent = transform;
+                GameObject wall = GameObject.Instantiate(Structure.GetPrefab("structure_wall"), point, Quaternion.identity);
+                if (point.x % 1f == 0f) { wall.transform.rotation = Quaternion.Euler(0f, 90f, 0f); }
+                wall.transform.parent = gameObject.transform;
 
                 //Asignar el material del muro
-                if (wallMaterial) { wall.GetComponent<MeshRenderer>().material = wallMaterial; } else { wall.GetComponent<MeshRenderer>().material = MaterialBank.GetWallMaterial(0); }
+                if (material) { wall.GetComponent<MeshRenderer>().material = material; } else { wall.GetComponent<MeshRenderer>().material = MaterialBank.GetWallMaterial(0); }
 
                 wallObjects.Add(wall);
             }
@@ -60,9 +67,9 @@ public class Walls : MonoBehaviour {
     public void ClearObjects() {
         foreach (GameObject go in wallObjects) {
             if (UnityEditor.EditorApplication.isPlaying) {
-                Destroy(go);
+                GameObject.Destroy(go);
             } else {
-                DestroyImmediate(go);
+                GameObject.DestroyImmediate(go);
             }
         }
         wallObjects.Clear();
@@ -87,10 +94,4 @@ public class Walls : MonoBehaviour {
         return neighbors.ToArray();
     }
 
-    private void OnDrawGizmosSelected() {
-        Gizmos.color = Color.red;
-        foreach (Vector3 point in wallMarkers) {
-            Gizmos.DrawSphere(point, 0.1f);
-        }
-    }
 }

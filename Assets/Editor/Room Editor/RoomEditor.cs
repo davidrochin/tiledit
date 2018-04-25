@@ -8,35 +8,65 @@ public class RoomEditor : Editor {
 
     public static RoomEditMode editMode;
     public static bool editModeEnabled;
-    public static int editFloor;
+    public static int floorLevel;
 
+    //Edit Plane
     public static Plane editPlane;
 
+    //Mouse position in plane and grid-locked mouse positions
     Vector3 mouseEditPos;
     Vector3 mouseFloorGridPos;
     Vector3 mouseWallGridPos;
 
+    //Walls and Floor managers (do not use directly)
     Walls walls;
     Floor floor;
 
+    //Wall points for drawing walls
+    List<Vector3> wallEditPoints = new List<Vector3>();
+
     public override void OnInspectorGUI() {
+
+        //Draw default inspector
         base.OnInspectorGUI();
+
         GUILayout.Label("Editor", EditorStyles.boldLabel);
 
-        //Floor selector
-        EditorGUILayout.BeginHorizontal();
-        EditorGUILayout.PrefixLabel("Floor");
-        editFloor = EditorGUILayout.IntSlider(editFloor, 1, 3);
-        editPlane = new Plane(Vector3.up, Vector3.zero + Vector3.up * (editFloor - 1));
-        EditorGUILayout.EndHorizontal();
-
+        //Edit mode selector
         EditorGUILayout.BeginHorizontal();
         if (GUILayout.Toggle(editMode == RoomEditMode.None, "None", EditorStyles.miniButtonLeft)) editMode = RoomEditMode.None;
         if (GUILayout.Toggle(editMode == RoomEditMode.Floor, "Floor", EditorStyles.miniButtonMid)) editMode = RoomEditMode.Floor;
         if (GUILayout.Toggle(editMode == RoomEditMode.Walls, "Walls", EditorStyles.miniButtonMid)) editMode = RoomEditMode.Walls;
         if (GUILayout.Toggle(editMode == RoomEditMode.Furniture, "Furniture", EditorStyles.miniButtonRight)) editMode = RoomEditMode.Furniture;
         EditorGUILayout.EndHorizontal();
-        
+
+        //Floor selector
+        if(editMode != RoomEditMode.None) {
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.PrefixLabel("Floor Level");
+            floorLevel = EditorGUILayout.IntSlider(floorLevel, 1, 3);
+            editPlane = new Plane(Vector3.up, Vector3.zero + Vector3.up * (floorLevel - 1));
+            EditorGUILayout.EndHorizontal();
+        }
+
+        //Debug buttons
+        GUILayout.Label("Debug", EditorStyles.boldLabel);
+        GUILayout.BeginHorizontal();
+        if (GUILayout.Button("Clear Objects")) {
+            ((Room)target).walls.ClearObjects();
+            ((Room)target).floor.ClearObjects();
+            SetSceneDirty();
+        }
+        if (GUILayout.Button("Rebuild all")) {
+            ((Room)target).walls.Rebuild();
+            ((Room)target).floor.Rebuild();
+            SetSceneDirty();
+        }
+        if (GUILayout.Button("Load Test Room")) {
+            ((Room)target).LoadTestRoom();
+            SetSceneDirty();
+        }
+        GUILayout.EndHorizontal();
     }
 
     private void OnSceneGUI() {
@@ -73,7 +103,7 @@ public class RoomEditor : Editor {
 
                 //Left click to draw
                 if (currentEvent.button == 0) {
-                    if (GetFloor().AddMarker(mouseFloorGridPos)) { GetFloor().Rebuild(); }
+                    if (GetFloor().AddMarker(mouseFloorGridPos)) { GetFloor().Rebuild(); SetSceneDirty(); }
                 } 
                 
                 //Right click to erase
@@ -86,19 +116,45 @@ public class RoomEditor : Editor {
 
         //If in Walls edit mode
         if (editMode == RoomEditMode.Walls) {
+
+            //Draw the marker
             Handles.DrawLine(mouseWallGridPos, mouseWallGridPos + Vector3.up * 3f);
+
+            //If mouse clicked or dragged
+            Event currentEvent = Event.current;
+            if (currentEvent.type == EventType.MouseDown || currentEvent.type == EventType.MouseDrag) {
+                if (currentEvent.button == 0 && wallEditPoints.Exists(a => a == mouseWallGridPos) == false) {
+                    wallEditPoints.Add(mouseWallGridPos);
+                }
+            }
+
+            //If mouse released
+            if(currentEvent.button == 0 && currentEvent.type == EventType.MouseUp) {
+
+                //Check that there is at least two wallEditPoints
+                if(wallEditPoints.Count >= 2) {
+
+                    //Add walls from wallEditPoints
+                    for (int i = 0; i < wallEditPoints.Count - 1; i++) {
+
+                        //Add a wall between this point and the next
+                        GetWalls().AddMarker(MiddleBetween(wallEditPoints[i], wallEditPoints[i + 1]));
+                        SetSceneDirty();
+
+                    }
+                }
+
+                //Clear point list and rebuild
+                wallEditPoints.Clear();
+                GetWalls().Rebuild();
+            }
+
+            //Draw wallEditPoints if any
+            foreach (Vector3 editPoint in wallEditPoints) {
+                Handles.DrawSolidDisc(editPoint, Vector3.up, 0.05f);
+            }
         }
 
-    }
-
-    float DistanceToWholeX(Vector3 point) {
-        Vector3 goal = new Vector3(RoundNearest(point.x), point.y, point.z);
-        return Vector3.Distance(point, goal);
-    }
-
-    float DistanceToWholeZ(Vector3 point) {
-        Vector3 goal = new Vector3(point.x, point.y, RoundNearest(point.z));
-        return Vector3.Distance(point, goal);
     }
 
     int RoundDown(float f) {
@@ -122,12 +178,33 @@ public class RoomEditor : Editor {
         return f % 1f;
     }
 
+    Vector3 MiddleBetween(Vector3 a, Vector3 b) {
+        Vector3 dir = b - a;
+        return a + dir * (Vector3.Distance(a, b) * 0.5f);
+    }
+
     Floor GetFloor() {
         if(floor != null) {
             return floor;
         } else {
-            return ((Room)target).GetComponent<Floor>();
+            return ((Room)target).floor;
         }
+    }
+
+    Walls GetWalls() {
+        if (walls != null) {
+            return walls;
+        } else {
+            return ((Room)target).walls;
+        }
+    }
+
+    bool SetSceneDirty() {
+        if (!EditorApplication.isPlaying) {
+            return UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene());
+        } else {
+            return false;
+        }  
     }
 
     public enum RoomEditMode { None, Floor, Walls, Furniture }
