@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class MeshBuilder {
 
-    public static Mesh GenerateFloorMesh(FloorGrid floorInfo) {
+    public static Mesh GenerateFloorMesh(FloorGrid floorGrid) {
 
         float floorThickness = 0.13f;
 
@@ -15,9 +15,9 @@ public class MeshBuilder {
 
         int lastVertex = -1;
 
-        for (int x = 0; x < floorInfo.GetLength(0); x++) {
-            for (int z = 0; z < floorInfo.GetLength(1); z++) {
-                FloorInfo fi = floorInfo[x, z];
+        for (int x = 0; x < floorGrid.GetLength(0); x++) {
+            for (int z = 0; z < floorGrid.GetLength(1); z++) {
+                FloorInfo fi = floorGrid[x, z];
                 if (fi.present) {
 
                     //Añadir los vertices
@@ -53,13 +53,13 @@ public class MeshBuilder {
 
                         needsThickness = false;
 
-                        if (i == 0 && (z == 0 || floorInfo[x, z - 1].present == false)) {
+                        if (i == 0 && (z == 0 || floorGrid[x, z - 1].present == false)) {
                             needsThickness = true;
                             thickStart = new Vector3(x, fi.height, z);
                             thickEnd = new Vector3(x + 1, fi.height, z);
                             thickNormal = -Vector3.forward;
                         }
-                        if (i == 1 && (x == floorInfo.GetLength(0) - 1 || floorInfo[x + 1, z].present == false)) {
+                        if (i == 1 && (x == floorGrid.GetLength(0) - 1 || floorGrid[x + 1, z].present == false)) {
                             needsThickness = true;
                             thickStart = new Vector3(x + 1, fi.height, z);
                             thickEnd = new Vector3(x + 1, fi.height, z + 1);

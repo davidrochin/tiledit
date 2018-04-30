@@ -2,13 +2,14 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
+using Util;
 
 [CustomEditor(typeof(World))]
 public class WorldEditor : Editor {
 
     public static RoomEditMode editMode;
     public static bool editModeEnabled;
-    public static int floorLevel;
+    public static int floorLevel = 0;
 
     //Edit Plane
     public static Plane editPlane;
@@ -25,6 +26,9 @@ public class WorldEditor : Editor {
 
     //Wall points for drawing walls
     List<Vector3> wallEditPoints = new List<Vector3>();
+
+    //Materials selected
+    int floorMaterialId;
 
     public override void OnInspectorGUI() {
 
@@ -43,11 +47,21 @@ public class WorldEditor : Editor {
 
         //Floor selector
         if(editMode != RoomEditMode.None) {
+
+            //Floor level selector
             EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.PrefixLabel("Floor Level");
-            floorLevel = EditorGUILayout.IntSlider(floorLevel, 1, 3);
-            editPlane = new Plane(Vector3.up, Vector3.zero + Vector3.up * (floorLevel - 1));
+            //EditorGUILayout.PrefixLabel("Floor Level");
+            //floorLevel = EditorGUILayout.IntSlider(floorLevel, 1, 3);
+            editPlane = new Plane(Vector3.up, Vector3.zero + Vector3.up * (floorLevel));
             EditorGUILayout.EndHorizontal();
+
+            //Floor material selector
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.PrefixLabel("Floor Material");
+            //floorMaterial = EditorGUILayout.ObjectField(floorMaterial, typeof(Material), false) as Material;
+            floorMaterialId = EditorGUILayout.IntField(floorMaterialId);
+            EditorGUILayout.EndHorizontal();
+            
         }
 
         //Debug buttons
@@ -67,6 +81,7 @@ public class WorldEditor : Editor {
 
     private void OnSceneGUI() {
 
+        //Obtain the World that this Editor is editing
         World world = ((World)target);
 
         //Calculate mouse position on imaginary plane
@@ -76,10 +91,10 @@ public class WorldEditor : Editor {
         mouseLocalPos = mouseWorldPos - ((World)target).transform.position;
 
         //Calculate mouse position locked to mouse and wall grids
-        mouseFloorGridPos = new Vector3(RoundDown(mouseLocalPos.x) + 0.5f, mouseLocalPos.y, RoundDown(mouseLocalPos.z) + 0.5f);
-        mouseWallGridPos = new Vector3(RoundNearest(mouseWorldPos.x), mouseWorldPos.y, RoundNearest(mouseWorldPos.z));
+        mouseFloorGridPos = new Vector3(Math.RoundDown(mouseLocalPos.x) + 0.5f, mouseLocalPos.y, Math.RoundDown(mouseLocalPos.z) + 0.5f);
+        mouseWallGridPos = new Vector3(Math.RoundNearest(mouseWorldPos.x), mouseWorldPos.y, Math.RoundNearest(mouseWorldPos.z));
 
-        //Dibujar el punto del mouse
+        //Draw all previously calculated positions
         //Handles.BeginGUI();
         //Handles.color = Color.red; Handles.DrawSolidDisc(mouseEditPos, Vector3.up, 0.1f);
         //Handles.color = Color.cyan; Handles.DrawSolidDisc(mouseFloorGridPos, Vector3.up, 0.1f);
@@ -92,7 +107,7 @@ public class WorldEditor : Editor {
             HandleUtility.AddDefaultControl(GUIUtility.GetControlID(FocusType.Passive));
         }
 
-        //If in Floor edit mode
+        //When in Floor Edit Mode
         if (editMode == RoomEditMode.Floor) {
             Handles.DrawWireCube(mouseFloorGridPos + ((World)target).transform.position, new Vector3(1f, 0f, 1f));
 
@@ -105,23 +120,19 @@ public class WorldEditor : Editor {
 
                     //If pressing CTRL erase floor. Else, add floor
                     if(currentEvent.control) {
-                        world.floorGrid[RoundDown(mouseFloorGridPos.x), RoundDown(mouseFloorGridPos.z)] = new FloorInfo(false, 0, 0);
+                        world.floorGrid[Math.RoundDown(mouseFloorGridPos.x), Math.RoundDown(mouseFloorGridPos.z)] = new FloorInfo(false, 0, 0);
                         world.RebuildFloor();
+                        SetSceneDirty();
                     } else {
-                        world.floorGrid[RoundDown(mouseFloorGridPos.x), RoundDown(mouseFloorGridPos.z)] = new FloorInfo(true, 0, 0);
+                        world.floorGrid[Math.RoundDown(mouseFloorGridPos.x), Math.RoundDown(mouseFloorGridPos.z)] = new FloorInfo(true, 0, floorMaterialId);
                         world.RebuildFloor();
+                        SetSceneDirty();
                     }  
-                } 
-                
-                //Right click to erase
-                /*else if(currentEvent.button == 0) {
-                    if (GetFloor().RemoveMarker(mouseFloorGridPos)) { GetFloor().Rebuild(); }
-                }*/
-                
+                }    
             }
         }
 
-        //If in Walls edit mode
+        //When in Walls Edit Mode
         if (editMode == RoomEditMode.Walls) {
 
             //Draw the marker
@@ -162,33 +173,7 @@ public class WorldEditor : Editor {
 
     }
 
-    int RoundDown(float f) {
-        if(f > 0f) {
-            return (int)f;
-        } else {
-            return (int)(f - 1f);
-        }
-    }
-
-    int RoundNearest(float f) {
-        float decimals = f % 1f;
-        if(decimals <= 0.5f) {
-            return (int)f;
-        } else {
-            return (int)(f + 1);
-        }
-    }
-
-    float GetDecimal(float f) {
-        return f % 1f;
-    }
-
-    Vector3 MiddleBetween(Vector3 a, Vector3 b) {
-        Vector3 dir = b - a;
-        return a + dir * (Vector3.Distance(a, b) * 0.5f);
-    }
-
-    bool SetSceneDirty() {
+    public static bool SetSceneDirty() {
         if (!EditorApplication.isPlaying) {
             return UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene());
         } else {

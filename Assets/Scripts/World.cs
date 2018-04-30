@@ -33,7 +33,7 @@ public class World : MonoBehaviour {
         MeshFilter meshFilter = transform.Find("Floor").GetComponent<MeshFilter>();
         meshFilter.mesh = floorMesh;
         meshFilter.GetComponent<MeshRenderer>().material = MaterialBank.GetFloorMaterial(0);
-
+        
     }
 
     public void RebuildWalls() {
@@ -89,6 +89,26 @@ public class FloorGrid {
                 return cols[0].rows.Length;
         }
         return -1;
+    }
+
+    public int[] GetUsedMaterialsIDS() {
+        List<int> materialsID = new List<int>();
+        foreach (FloorInfo current in GetAll()) {
+            if(!materialsID.Exists(a => a == current.materialId)) {
+                materialsID.Add(current.materialId);
+            }
+        }
+        return materialsID.ToArray();
+    }
+
+    public FloorInfo[] GetAll() {
+        List<FloorInfo> all = new List<FloorInfo>();
+        foreach (FloorCol col in cols) {
+            foreach (FloorInfo current in col.rows) {
+                all.Add(current);
+            }
+        }
+        return all.ToArray();
     }
 
     public FloorInfo this[int colIndex, int rowIndex] {
