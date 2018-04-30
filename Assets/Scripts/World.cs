@@ -32,7 +32,9 @@ public class World : MonoBehaviour {
         Mesh floorMesh = MeshBuilder.GenerateFloorMesh(floorGrid);
         MeshFilter meshFilter = transform.Find("Floor").GetComponent<MeshFilter>();
         meshFilter.mesh = floorMesh;
-        meshFilter.GetComponent<MeshRenderer>().material = MaterialBank.GetFloorMaterial(0);
+
+        MeshRenderer renderer = meshFilter.GetComponent<MeshRenderer>();
+        renderer.materials = MaterialBank.GetFloorMaterials(floorGrid.GetUsedMaterialsIDS());
         
     }
 
@@ -98,6 +100,7 @@ public class FloorGrid {
                 materialsID.Add(current.materialId);
             }
         }
+        materialsID.Sort();
         return materialsID.ToArray();
     }
 

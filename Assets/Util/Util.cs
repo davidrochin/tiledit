@@ -33,5 +33,22 @@ namespace Util {
         }
     }
 
+    public class Array {
+        
+        public static T[] Add<T>(T[] a, T[] b) {
+            List<T> result = new List<T>();
+            foreach (T i in a) { result.Add(i); }
+            foreach (T i in b) { result.Add(i); }
+            return result.ToArray();
+        }
+
+        public static void Print<T>(T[] array) {
+            foreach (T o in array) {
+                Debug.Log(o);
+            }
+        }
+
+    }
+
 }
 
