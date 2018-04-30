@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class RoomTile {
 
-    public Room room;
+    public World room;
 
     public int height = 0;
     public RoomVector position;

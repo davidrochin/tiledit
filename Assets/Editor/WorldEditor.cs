@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 
-[CustomEditor(typeof(Room))]
-public class RoomEditor : Editor {
+[CustomEditor(typeof(World))]
+public class WorldEditor : Editor {
 
     public static RoomEditMode editMode;
     public static bool editModeEnabled;
@@ -14,7 +14,8 @@ public class RoomEditor : Editor {
     public static Plane editPlane;
 
     //Mouse position in plane and grid-locked mouse positions
-    Vector3 mouseEditPos;
+    Vector3 mouseWorldPos;
+    Vector3 mouseLocalPos;
     Vector3 mouseFloorGridPos;
     Vector3 mouseWallGridPos;
 
@@ -52,18 +53,13 @@ public class RoomEditor : Editor {
         //Debug buttons
         GUILayout.Label("Debug", EditorStyles.boldLabel);
         GUILayout.BeginHorizontal();
-        if (GUILayout.Button("Clear Objects")) {
-            ((Room)target).walls.ClearObjects();
-            ((Room)target).floor.ClearObjects();
-            SetSceneDirty();
-        }
         if (GUILayout.Button("Rebuild all")) {
-            ((Room)target).walls.Rebuild();
-            ((Room)target).floor.Rebuild();
+            ((World)target).RebuildFloor();
+            //((World)target).RebuildWalls();
             SetSceneDirty();
         }
         if (GUILayout.Button("Load Test Room")) {
-            ((Room)target).LoadTestRoom();
+            ((World)target).LoadTestRoom();
             SetSceneDirty();
         }
         GUILayout.EndHorizontal();
@@ -71,14 +67,17 @@ public class RoomEditor : Editor {
 
     private void OnSceneGUI() {
 
+        World world = ((World)target);
+
         //Calculate mouse position on imaginary plane
         Ray ray = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition);
         float rayHitDistance = 0f; bool onPlane = editPlane.Raycast(ray, out rayHitDistance);
-        mouseEditPos = ray.origin + ray.direction * rayHitDistance;
+        mouseWorldPos = ray.origin + ray.direction * rayHitDistance;
+        mouseLocalPos = mouseWorldPos - ((World)target).transform.position;
 
         //Calculate mouse position locked to mouse and wall grids
-        mouseFloorGridPos = new Vector3(RoundDown(mouseEditPos.x) + 0.5f, mouseEditPos.y, RoundDown(mouseEditPos.z) + 0.5f);
-        mouseWallGridPos = new Vector3(RoundNearest(mouseEditPos.x), mouseEditPos.y, RoundNearest(mouseEditPos.z));
+        mouseFloorGridPos = new Vector3(RoundDown(mouseLocalPos.x) + 0.5f, mouseLocalPos.y, RoundDown(mouseLocalPos.z) + 0.5f);
+        mouseWallGridPos = new Vector3(RoundNearest(mouseWorldPos.x), mouseWorldPos.y, RoundNearest(mouseWorldPos.z));
 
         //Dibujar el punto del mouse
         //Handles.BeginGUI();
@@ -95,15 +94,23 @@ public class RoomEditor : Editor {
 
         //If in Floor edit mode
         if (editMode == RoomEditMode.Floor) {
-            Handles.DrawWireCube(mouseFloorGridPos, new Vector3(1f, 0f, 1f));
+            Handles.DrawWireCube(mouseFloorGridPos + ((World)target).transform.position, new Vector3(1f, 0f, 1f));
 
             //If mouse clicked
             Event currentEvent = Event.current;
             if (currentEvent.type == EventType.MouseDown || currentEvent.type == EventType.MouseDrag) {
 
-                //Left click to draw
+                //Left click
                 if (currentEvent.button == 0) {
-                    if (GetFloor().AddMarker(mouseFloorGridPos)) { GetFloor().Rebuild(); SetSceneDirty(); }
+
+                    //If pressing CTRL erase floor. Else, add floor
+                    if(currentEvent.control) {
+                        world.floorGrid[RoundDown(mouseFloorGridPos.x), RoundDown(mouseFloorGridPos.z)] = new FloorInfo(false, 0, 0);
+                        world.RebuildFloor();
+                    } else {
+                        world.floorGrid[RoundDown(mouseFloorGridPos.x), RoundDown(mouseFloorGridPos.z)] = new FloorInfo(true, 0, 0);
+                        world.RebuildFloor();
+                    }  
                 } 
                 
                 //Right click to erase
@@ -138,7 +145,6 @@ public class RoomEditor : Editor {
                     for (int i = 0; i < wallEditPoints.Count - 1; i++) {
 
                         //Add a wall between this point and the next
-                        GetWalls().AddMarker(MiddleBetween(wallEditPoints[i], wallEditPoints[i + 1]));
                         SetSceneDirty();
 
                     }
@@ -146,7 +152,6 @@ public class RoomEditor : Editor {
 
                 //Clear point list and rebuild
                 wallEditPoints.Clear();
-                GetWalls().Rebuild();
             }
 
             //Draw wallEditPoints if any
@@ -181,22 +186,6 @@ public class RoomEditor : Editor {
     Vector3 MiddleBetween(Vector3 a, Vector3 b) {
         Vector3 dir = b - a;
         return a + dir * (Vector3.Distance(a, b) * 0.5f);
-    }
-
-    Floor GetFloor() {
-        if(floor != null) {
-            return floor;
-        } else {
-            return ((Room)target).floor;
-        }
-    }
-
-    Walls GetWalls() {
-        if (walls != null) {
-            return walls;
-        } else {
-            return ((Room)target).walls;
-        }
     }
 
     bool SetSceneDirty() {
