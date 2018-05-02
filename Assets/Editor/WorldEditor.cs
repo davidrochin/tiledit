@@ -69,7 +69,7 @@ public class WorldEditor : Editor {
         GUILayout.BeginHorizontal();
         if (GUILayout.Button("Rebuild all")) {
             ((World)target).RebuildFloor();
-            //((World)target).RebuildWalls();
+            ((World)target).RebuildWalls();
             SetSceneDirty();
         }
         if (GUILayout.Button("Load Test Room")) {
