@@ -166,8 +166,16 @@ public class WorldEditor : Editor {
             }
 
             //Draw wallEditPoints if any
-            foreach (Vector3 editPoint in wallEditPoints) {
-                Handles.DrawSolidDisc(editPoint, Vector3.up, 0.05f);
+            for (int i = 0; i < wallEditPoints.Count - 1; i++) {
+                Handles.DrawSolidDisc(wallEditPoints[i], Vector3.up, 0.05f);
+                if(Vector3.Distance(wallEditPoints[i], wallEditPoints[i+1]) == 1f) {
+                    Vector3 middle = Util.Math.MiddleBetween(wallEditPoints[i], wallEditPoints[i + 1]);
+                    Vector3 size = Vector3.zero;
+
+                    if (Math.GetDecimal(middle.x) == 0.5f) { size = new Vector3(1f, 3f, 0f); }
+                    if (Math.GetDecimal(middle.z) == 0.5f) { size = new Vector3(0f, 3f, 1f); }
+                    Handles.DrawWireCube(middle + Vector3.up * 1.5f, size);
+                }
             }
         }
 
