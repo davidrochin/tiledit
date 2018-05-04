@@ -92,7 +92,8 @@ public class WorldEditor : Editor {
 
         //Calculate mouse position locked to mouse and wall grids
         mouseFloorGridPos = new Vector3(Math.RoundDown(mouseLocalPos.x) + 0.5f, mouseLocalPos.y, Math.RoundDown(mouseLocalPos.z) + 0.5f);
-        mouseWallGridPos = new Vector3(Math.RoundNearest(mouseWorldPos.x), mouseWorldPos.y, Math.RoundNearest(mouseWorldPos.z));
+        //mouseWallGridPos = new Vector3(Math.RoundNearest(mouseWorldPos.x), mouseWorldPos.y, Math.RoundNearest(mouseWorldPos.z));
+        mouseWallGridPos = new Vector3(Math.RoundNearest(mouseLocalPos.x), 0f, Math.RoundNearest(mouseLocalPos.z));
 
         //Draw all previously calculated positions
         //Handles.BeginGUI();
@@ -136,7 +137,7 @@ public class WorldEditor : Editor {
         if (editMode == RoomEditMode.Walls) {
 
             //Draw the marker
-            Handles.DrawLine(mouseWallGridPos, mouseWallGridPos + Vector3.up * 3f);
+            Handles.DrawLine(world.transform.position + mouseWallGridPos, world.transform.position + mouseWallGridPos + Vector3.up * 3f);
 
             //If mouse clicked or dragged
             Event currentEvent = Event.current;
@@ -148,20 +149,7 @@ public class WorldEditor : Editor {
 
             //If mouse released
             if(currentEvent.button == 0 && currentEvent.type == EventType.MouseUp) {
-
-                //Check that there is at least two wallEditPoints
-                if(wallEditPoints.Count >= 2) {
-
-                    //Add walls from wallEditPoints
-                    for (int i = 0; i < wallEditPoints.Count - 1; i++) {
-
-                        //Add a wall between this point and the next
-                        SetSceneDirty();
-
-                    }
-                }
-
-                //Clear point list and rebuild
+                AddWallsFromPoints(wallEditPoints);
                 wallEditPoints.Clear();
             }
 
@@ -179,6 +167,44 @@ public class WorldEditor : Editor {
             }
         }
 
+    }
+
+    bool AddWallsFromPoints(List<Vector3> points) {
+
+        //Check that there is at least two wallEditPoints
+        if (points.Count >= 2) {
+            for (int i = 0; i < wallEditPoints.Count - 1; i++) {
+                Vector3 start = points[i];
+
+                //Check if must draw wall to the North
+                if (points[i].z + 1 == points[i + 1].z) {
+                    ((World)target).wallGrid[(int)start.x, (int)start.z].connectedNorth = true;
+                }
+
+                //Check if must draw wall to the South
+                else if (points[i].z - 1 == points[i + 1].z) {
+                    ((World)target).wallGrid[(int)start.x, (int)start.z - 1].connectedNorth = true;
+                }
+
+                //Check if must draw wall to the East
+                else if (points[i].x + 1 == points[i + 1].x) {
+                    ((World)target).wallGrid[(int)start.x, (int)start.z].connectedEast = true;
+                }
+
+                //Check if must draw wall to the West
+                else if (points[i].x - 1 == points[i + 1].x) {
+                    ((World)target).wallGrid[(int)start.x - 1, (int)start.z].connectedEast = true;
+                }
+
+                SetSceneDirty();
+
+            }
+
+            ((World)target).RebuildWalls();
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public static bool SetSceneDirty() {

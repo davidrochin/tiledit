@@ -183,6 +183,17 @@ public class MeshBuilder {
                         meshesToCombine.Add(ci);
                     }
 
+                    //Add Top
+                    ci = new CombineInstance();
+                    ci.mesh = GetPlane(
+                        new Vector3(x, 0f, z) + Vector3.up * wallHeight - Vector3.right * wallThickness * 0.5f,
+                        new Vector3(x, 0f, z) + Vector3.up * wallHeight - Vector3.right * wallThickness * 0.5f + Vector3.forward * 1f,
+                        new Vector3(x, 0f, z) + Vector3.up * wallHeight - Vector3.right * wallThickness * 0.5f + Vector3.forward * 1f + Vector3.right * wallThickness,
+                        new Vector3(x, 0f, z) + Vector3.up * wallHeight - Vector3.right * wallThickness * 0.5f + Vector3.right * wallThickness,
+                        Vector3.up, 0
+                        );
+                    meshesToCombine.Add(ci);
+
                 }
 
                 //IF connected to East
@@ -216,6 +227,17 @@ public class MeshBuilder {
                             );
                         meshesToCombine.Add(ci);
                     }
+
+                    //Add Top
+                    ci = new CombineInstance();
+                    ci.mesh = GetPlane(
+                        new Vector3(x, 0f + wallHeight, z - wallThickness * 0.5f),
+                        new Vector3(x, 0f + wallHeight, z + wallThickness * 0.5f),
+                        new Vector3(x + 1f, 0f + wallHeight, z + wallThickness * 0.5f),
+                        new Vector3(x + 1f, 0f + wallHeight, z - wallThickness * 0.5f),
+                        Vector3.up, 0
+                        );
+                    meshesToCombine.Add(ci);
                 }
             }
         }
@@ -276,6 +298,50 @@ public class MeshBuilder {
         vertices.Add(bottomLeftPos + Vector3.up * (topRightPos - bottomLeftPos).y); //Top Left
         vertices.Add(topRightPos); //Top Right
         vertices.Add(topRightPos + Vector3.down * (topRightPos - bottomLeftPos).y); //Bottom Right
+
+        //Calcular los indices de los vertices para construir los tris
+        int bottomLeft = lastVertex + 1;
+        int topLeft = lastVertex + 2;
+        int topRight = lastVertex + 3;
+        int bottomRight = lastVertex + 4;
+
+        //Construir los dos triangulos usando los vertices en sentido de las agujas del reloj
+        triangles.Add(bottomLeft); triangles.Add(topLeft); triangles.Add(bottomRight);
+        triangles.Add(bottomRight); triangles.Add(topLeft); triangles.Add(topRight);
+        lastVertex += 4;
+
+        //Añadir las normales
+        normals.Add(normal); normals.Add(normal);
+        normals.Add(normal); normals.Add(normal);
+
+        //Añadir los mapas UV para las texturas
+        uvs.Add(new Vector2(0, 0)); uvs.Add(new Vector2(0, 1));
+        uvs.Add(new Vector2(1, 1)); uvs.Add(new Vector2(1, 0));
+
+        planeMesh.vertices = vertices.ToArray();
+        planeMesh.SetTriangles(triangles.ToArray(), 0);
+        planeMesh.normals = normals.ToArray();
+        planeMesh.uv = uvs.ToArray();
+
+        return planeMesh;
+    }
+
+    static Mesh GetPlane(Vector3 bl, Vector3 tl, Vector3 tr, Vector3 br, Vector3 normal, int subMesh) {
+        Mesh planeMesh = new Mesh();
+
+        //Initialize the Lists
+        List<Vector3> vertices = new List<Vector3>();
+        List<int> triangles = new List<int>();
+        List<Vector3> normals = new List<Vector3>();
+        List<Vector2> uvs = new List<Vector2>();
+
+        int lastVertex = -1;
+
+        //Armar el primer cuadro
+        vertices.Add(bl); //Bottom Left
+        vertices.Add(tl); //Top Left
+        vertices.Add(tr); //Top Right
+        vertices.Add(br); //Bottom Right
 
         //Calcular los indices de los vertices para construir los tris
         int bottomLeft = lastVertex + 1;
