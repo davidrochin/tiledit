@@ -47,7 +47,7 @@ public class World : MonoBehaviour {
         Mesh wallMesh = MeshBuilder.GenerateWallMesh(wallGrid);
         MeshFilter meshFilter = transform.Find("Walls").GetComponent<MeshFilter>();
         meshFilter.mesh = wallMesh;
-        meshFilter.GetComponent<MeshRenderer>().material = MaterialBank.GetWallMaterial(0);
+        meshFilter.GetComponent<MeshRenderer>().material = MaterialBank.GetWallMaterial(3);
 
     }
 
@@ -73,11 +73,13 @@ public class World : MonoBehaviour {
                 //West walls
                 if (x == 0 && z != wallGrid.GetLength(1) - 1) {
                     wallGrid[x, z] = new WallNode(true, false);
+                    wallGrid[x, z].SetAllMaterials(1);
                 };
 
                 //North walls
                 if (z == wallGrid.GetLength(1) - 1 && x < wallGrid.GetLength(0) - 1) {
                     wallGrid[x, z] = new WallNode(false, true);
+                    wallGrid[x, z].SetAllMaterials(1);
                 };
             }
         }

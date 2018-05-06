@@ -146,12 +146,20 @@ public class WorldEditor : Editor {
                     wallEditPoints.Add(mouseWallGridPos);
                 }
             }
-
-            //If mouse released
-            if(currentEvent.button == 0 && currentEvent.type == EventType.MouseUp) {
-                AddWallsFromPoints(wallEditPoints);
+            
+            //If mouse released and control pressed REMOVE
+            if (currentEvent.button == 0 && currentEvent.type == EventType.MouseUp && currentEvent.control) {
+                EditWallsFromPoints(wallEditPoints, false);
                 wallEditPoints.Clear();
             }
+
+            //If mouse released ADD
+            else if (currentEvent.button == 0 && currentEvent.type == EventType.MouseUp) {
+                EditWallsFromPoints(wallEditPoints, true);
+                wallEditPoints.Clear();
+            }
+
+            
 
             //Draw wallEditPoints if any
             for (int i = 0; i < wallEditPoints.Count - 1; i++) {
@@ -169,7 +177,7 @@ public class WorldEditor : Editor {
 
     }
 
-    bool AddWallsFromPoints(List<Vector3> points) {
+    bool EditWallsFromPoints(List<Vector3> points, bool add) {
 
         //Check that there is at least two wallEditPoints
         if (points.Count >= 2) {
@@ -178,22 +186,22 @@ public class WorldEditor : Editor {
 
                 //Check if must draw wall to the North
                 if (points[i].z + 1 == points[i + 1].z) {
-                    ((World)target).wallGrid[(int)start.x, (int)start.z].connectedNorth = true;
+                    ((World)target).wallGrid[(int)start.x, (int)start.z].connectedNorth = add;
                 }
 
                 //Check if must draw wall to the South
                 else if (points[i].z - 1 == points[i + 1].z) {
-                    ((World)target).wallGrid[(int)start.x, (int)start.z - 1].connectedNorth = true;
+                    ((World)target).wallGrid[(int)start.x, (int)start.z - 1].connectedNorth = add;
                 }
 
                 //Check if must draw wall to the East
                 else if (points[i].x + 1 == points[i + 1].x) {
-                    ((World)target).wallGrid[(int)start.x, (int)start.z].connectedEast = true;
+                    ((World)target).wallGrid[(int)start.x, (int)start.z].connectedEast = add;
                 }
 
                 //Check if must draw wall to the West
                 else if (points[i].x - 1 == points[i + 1].x) {
-                    ((World)target).wallGrid[(int)start.x - 1, (int)start.z].connectedEast = true;
+                    ((World)target).wallGrid[(int)start.x - 1, (int)start.z].connectedEast = add;
                 }
 
                 SetSceneDirty();

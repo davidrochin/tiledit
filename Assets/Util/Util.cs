@@ -50,5 +50,13 @@ namespace Util {
 
     }
 
+    public class Vector {
+
+        public static Vector3 NoY(Vector3 v) {
+            return new Vector3(v.x, 0f, v.z);
+        }
+
+    }
+
 }
 

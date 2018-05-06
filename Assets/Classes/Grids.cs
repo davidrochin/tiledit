@@ -6,6 +6,7 @@ public interface ISerializableGrid<CellInfo> {
     int GetLength(int dimension);
     CellInfo[] GetAll();
     int[] GetUsedMaterialsIds();
+    bool InRange(int col, int row);
     CellInfo this[int col, int row] { get; set; }
 }
 
@@ -52,6 +53,10 @@ public class FloorGrid : ISerializableGrid<FloorInfo> {
             }
         }
         return all.ToArray();
+    }
+
+    public bool InRange(int x, int y) {
+        return true;
     }
 
     public FloorInfo this[int colIndex, int rowIndex] {
@@ -126,6 +131,47 @@ public class WallGrid : ISerializableGrid<WallNode> {
         }
         materialsID.Sort();
         return materialsID.ToArray();
+    }
+
+    public bool InRange(int x, int y) {
+        if (x < 0 || x >= GetLength(0)) return false;
+        if (y < 0 || y >= GetLength(1)) return false;
+        return true;
+    }
+
+    public WallNode GetSafe(int x, int y) {
+        if(!InRange(x, y)) {
+            return new WallNode();
+        } else {
+            return this[x, y];
+        }
+    }
+
+    public int GetIntersectionsCount(int x, int z) {
+        int count = 0;
+        if (this[x, z].connectedNorth) count++;
+        if (this[x, z].connectedEast) count++;
+        if (GetSafe(x - 1, z).connectedEast) count++;
+        if (GetSafe(x, z - 1).connectedNorth) count++;
+        return count;
+    }
+
+    public bool IsIntersection(int x, int z) {
+        int intersectionsCount = GetIntersectionsCount(x, z);
+        if (intersectionsCount >= 3) {
+            return true;
+        } else if(intersectionsCount <= 1){
+            return false;
+        } else {
+            if(this[x, z].connectedNorth && GetSafe(x, z - 1).connectedNorth) {
+                return false;
+            }
+            if (this[x, z].connectedEast && GetSafe(x - 1, z).connectedEast) {
+                return false;
+            } else {
+                return true;
+            }
+        }
     }
 
     [System.Serializable]

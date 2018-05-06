@@ -18,5 +18,12 @@ public class WallNode {
         this.connectedEast = connectedEast;
     }
 
+    public void SetAllMaterials(int materialId) {
+        northInnerMaterialId = materialId;
+        northOuterMaterialId = materialId;
+        eastInnerMaterialId = materialId;
+        eastOuterMaterialId = materialId;
+    }
+
     public WallNode() : this(false, false) { }
 }

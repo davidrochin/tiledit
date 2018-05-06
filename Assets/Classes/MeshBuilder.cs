@@ -126,21 +126,12 @@ public class MeshBuilder {
 
     public static Mesh GenerateWallMesh(WallGrid wallGrid) {
 
+        float halfThickness = wallThickness * 0.5f;
+
         //Get how many Materials this grid has
         //int[] materialIDS = wallGrid.GetUsedMaterialsIds();
         Mesh wallMesh = new Mesh(); wallMesh.name = "wall_mesh";
         //wallMesh.subMeshCount = materialIDS.Length;
-
-        //Initialize the Lists
-        /*List<Vector3> vertices = new List<Vector3>();
-        List<int> triangles = new List<int>();
-        List<Vector3> normals = new List<Vector3>();
-        List<Vector2> uvs = new List<Vector2>();*/
-
-        //int lastVertex = -1;
-
-        //Reset triangle List because it is another SubMesh
-        //triangles = new List<int>();
 
         List<CombineInstance> meshesToCombine = new List<CombineInstance>();
 
@@ -149,105 +140,151 @@ public class MeshBuilder {
             for (int z = 0; z < wallGrid.GetLength(1); z++) {
 
                 //Obtain the WallNode of this cell
-                WallNode wn = wallGrid[x, z];
+                WallNode node = wallGrid[x, z];
 
-                //IF connected to North
-                if (wn.connectedNorth) {
+                //Generate connection to North if necessary
+                if (node.connectedNorth) {
+
+                    bool intersectsOnNorth = false; if ((wallGrid.InRange(x, z + 1) && wallGrid[x, z + 1].connectedEast) || (wallGrid.InRange(x - 1, z + 1) && wallGrid[x - 1, z + 1].connectedEast)) { intersectsOnNorth = true; }
+                    bool intersectsOnSouth = false; if (wallGrid[x, z].connectedEast || (x - 1 >= 0 && wallGrid[x - 1, z].connectedEast)) { intersectsOnSouth = true; }
 
                     //North Inner Wall
                     CombineInstance ci = new CombineInstance();
-                    ci.mesh = GetSidePlane(
-                        new Vector3(x, 0f, z) + Vector3.right * wallThickness * 0.5f,
-                        new Vector3(x, 0f, z) + Vector3.right * wallThickness * 0.5f + Vector3.forward * 1f + Vector3.up * wallHeight,
-                        Vector3.right, 0
+                    ci.mesh = GetWallPlane(
+                        new Vector3(x, 0f, z) + Vector3.right * wallThickness * 0.5f + Vector3.forward * (intersectsOnSouth ? halfThickness : 0f),
+                        new Vector3(x, 0f, z) + Vector3.right * wallThickness * 0.5f + Vector3.forward * 1f + Vector3.up * wallHeight - Vector3.forward * (intersectsOnNorth ? halfThickness : 0f),
+                        Vector3.right, 0,
+                        intersectsOnSouth ? halfThickness : 0f,
+                        intersectsOnNorth ? halfThickness : 0f
                         );
                     meshesToCombine.Add(ci);
 
                     //North Outer Wall
-                    /*ci = new CombineInstance();
-                    ci.mesh = GetSidePlane(
-                        new Vector3(x, 0f, z) + -Vector3.right * wallThickness * 0.5f + Vector3.forward * 1f,
-                        new Vector3(x, 0f, z) + -Vector3.right * wallThickness * 0.5f + Vector3.up * wallHeight,
-                        -Vector3.right, 0
+                    ci = new CombineInstance();
+                    ci.mesh = GetWallPlane(
+                        new Vector3(x, 0f, z - (intersectsOnNorth ? halfThickness : 0f)) + -Vector3.right * wallThickness * 0.5f + Vector3.forward * 1f,
+                        new Vector3(x, 0f, z + (intersectsOnSouth ? halfThickness : 0f)) + -Vector3.right * wallThickness * 0.5f + Vector3.up * wallHeight,
+                        -Vector3.right, 0,
+                        intersectsOnNorth ? halfThickness : 0f,
+                        intersectsOnSouth ? halfThickness : 0f
                         );
-                    meshesToCombine.Add(ci);*/
-
-                    //Add start border if needed
-                    if(z == 0 || wallGrid[x, z - 1].connectedNorth == false) {
-                        ci = new CombineInstance();
-                        ci.mesh = GetSidePlane(
-                            new Vector3(x, 0f, z) + -Vector3.right * wallThickness * 0.5f,
-                            new Vector3(x, 0f, z) + Vector3.right * wallThickness * 0.5f + Vector3.up * wallHeight,
-                            -Vector3.forward, 0
-                            );
-                        meshesToCombine.Add(ci);
-                    }
+                    meshesToCombine.Add(ci);
 
                     //Add Top
                     ci = new CombineInstance();
                     ci.mesh = GetPlane(
-                        new Vector3(x, 0f, z) + Vector3.up * wallHeight - Vector3.right * wallThickness * 0.5f,
-                        new Vector3(x, 0f, z) + Vector3.up * wallHeight - Vector3.right * wallThickness * 0.5f + Vector3.forward * 1f,
-                        new Vector3(x, 0f, z) + Vector3.up * wallHeight - Vector3.right * wallThickness * 0.5f + Vector3.forward * 1f + Vector3.right * wallThickness,
-                        new Vector3(x, 0f, z) + Vector3.up * wallHeight - Vector3.right * wallThickness * 0.5f + Vector3.right * wallThickness,
+                        new Vector3(x, 0f, z + (intersectsOnSouth ? halfThickness : 0f)) + Vector3.up * wallHeight - Vector3.right * wallThickness * 0.5f,
+                        new Vector3(x, 0f, z) + Vector3.up * wallHeight - Vector3.right * wallThickness * 0.5f + Vector3.forward * (1f - (intersectsOnNorth ? halfThickness : 0f)),
+                        new Vector3(x, 0f, z) + Vector3.up * wallHeight - Vector3.right * wallThickness * 0.5f + Vector3.forward * (1f - (intersectsOnNorth ? halfThickness : 0f)) + Vector3.right * wallThickness,
+                        new Vector3(x, 0f, z + (intersectsOnSouth ? halfThickness : 0f)) + Vector3.up * wallHeight - Vector3.right * wallThickness * 0.5f + Vector3.right * wallThickness,
                         Vector3.up, 0
                         );
                     meshesToCombine.Add(ci);
 
                 }
 
-                //IF connected to East
-                if (wn.connectedEast) {
+                //Generate connection to East if necessary
+                if (node.connectedEast) {
 
-                    //East Outer Wall
+                    bool intersectsOnEast = false; if (wallGrid.GetSafe(x + 1, z).connectedNorth || wallGrid.GetSafe(x + 1, z - 1).connectedNorth) { intersectsOnEast = true; }
+                    bool intersectsOnWest = false; if (node.connectedNorth || wallGrid.GetSafe(x, z - 1).connectedNorth) { intersectsOnWest = true; }
+
+                    //East Inner Wall
                     CombineInstance ci = new CombineInstance();
-                    ci.mesh = GetSidePlane(
-                        new Vector3(x, 0f, z) + -Vector3.forward * wallThickness * 0.5f,
-                        new Vector3(x, 0f, z) + -Vector3.forward * wallThickness * 0.5f + Vector3.right * 1f + Vector3.up * wallHeight,
-                        -Vector3.forward, 0
+                    ci.mesh = GetWallPlane(
+                        new Vector3(x + 1f - (intersectsOnEast ? halfThickness : 0f), 0f, z + halfThickness),
+                        new Vector3(x + (intersectsOnWest ? halfThickness : 0f), wallHeight, z + halfThickness),
+                        Vector3.forward, 0,
+                        intersectsOnEast ? halfThickness : 0f,
+                        intersectsOnWest ? halfThickness : 0f
                         );
                     meshesToCombine.Add(ci);
 
-                    //East Inner Wall
-                    /*ci = new CombineInstance();
-                    ci.mesh = GetSidePlane(
-                        new Vector3(x, 0f, z) + -Vector3.right * wallThickness * 0.5f + Vector3.forward * 1f,
-                        new Vector3(x, 0f, z) + -Vector3.right * wallThickness * 0.5f + Vector3.up * wallHeight,
-                        -Vector3.right, 0
+                    //East Outer Wall
+                    ci = new CombineInstance();
+                    ci.mesh = GetWallPlane(
+                        new Vector3(x + (intersectsOnWest ? halfThickness : 0f), 0f, z - halfThickness),
+                        new Vector3(x + 1f - (intersectsOnEast ? halfThickness : 0f), wallHeight, z - halfThickness),
+                        -Vector3.forward, 0,
+                        intersectsOnWest ? halfThickness : 0f,
+                        intersectsOnEast ? halfThickness : 0f
                         );
-                    meshesToCombine.Add(ci);*/
+                    meshesToCombine.Add(ci);
 
-                    //Add end border if needed
-                    if (x == wallGrid.GetLength(0) - 1 || wallGrid[x + 1, z].connectedEast == false) {
+                    //Add Top
+                    ci = new CombineInstance();
+                    ci.mesh = GetPlane(
+                        new Vector3(x + (intersectsOnWest ? halfThickness : 0f), 0f + wallHeight, z - wallThickness * 0.5f),
+                        new Vector3(x + (intersectsOnWest ? halfThickness : 0f), 0f + wallHeight, z + wallThickness * 0.5f),
+                        new Vector3(x + 1f - (intersectsOnEast ? halfThickness : 0f), 0f + wallHeight, z + wallThickness * 0.5f),
+                        new Vector3(x + 1f - (intersectsOnEast ? halfThickness : 0f), 0f + wallHeight, z - wallThickness * 0.5f),
+                        Vector3.up, 0
+                        );
+                    meshesToCombine.Add(ci);
+                }
+
+                //Generate intersection if necessary
+                if (wallGrid.IsIntersection(x, z)) {
+
+                    //Top
+                    CombineInstance ci = new CombineInstance();
+                    Vector3 planeBottomLeft = new Vector3(x - halfThickness, wallHeight, z - halfThickness);
+                    ci.mesh = GetPlane(
+                        planeBottomLeft,
+                        planeBottomLeft + Vector3.forward * wallThickness,
+                        planeBottomLeft + Vector3.forward * wallThickness + Vector3.right * wallThickness,
+                        planeBottomLeft + Vector3.right * wallThickness,
+                        Vector3.up, 0
+                        );
+                    meshesToCombine.Add(ci);
+
+                    //Intersection EAST Wall
+                    if (!node.connectedEast) {
                         ci = new CombineInstance();
-                        ci.mesh = GetSidePlane(
-                            new Vector3(x, 0f, z) + -Vector3.forward * wallThickness * 0.5f + Vector3.right * 1f,
-                            new Vector3(x, 0f, z) + -Vector3.forward * wallThickness * 0.5f + Vector3.right * 1f + Vector3.up * wallHeight + Vector3.forward * wallThickness,
+                        ci.mesh = GetIntersectionWall(
+                            new Vector3(x + halfThickness, 0f, z - halfThickness),
+                            new Vector3(x + halfThickness, wallHeight, z + halfThickness),
                             Vector3.right, 0
                             );
                         meshesToCombine.Add(ci);
                     }
 
-                    //Add Top
-                    ci = new CombineInstance();
-                    ci.mesh = GetPlane(
-                        new Vector3(x, 0f + wallHeight, z - wallThickness * 0.5f),
-                        new Vector3(x, 0f + wallHeight, z + wallThickness * 0.5f),
-                        new Vector3(x + 1f, 0f + wallHeight, z + wallThickness * 0.5f),
-                        new Vector3(x + 1f, 0f + wallHeight, z - wallThickness * 0.5f),
-                        Vector3.up, 0
-                        );
-                    meshesToCombine.Add(ci);
+                    //Intersection WEST Wall
+                    if (!wallGrid.GetSafe(x - 1, z).connectedEast) {
+                        ci = new CombineInstance();
+                        ci.mesh = GetIntersectionWall(
+                            new Vector3(x - halfThickness, 0f, z + halfThickness),
+                            new Vector3(x - halfThickness, wallHeight, z - halfThickness),
+                            -Vector3.right, 0
+                            );
+                        meshesToCombine.Add(ci);
+                    }
+
+                    //Intersection NORTH Wall
+                    if (!node.connectedNorth) {
+                        ci = new CombineInstance();
+                        ci.mesh = GetIntersectionWall(
+                            new Vector3(x + halfThickness, 0f, z + halfThickness),
+                            new Vector3(x - halfThickness, wallHeight, z + halfThickness),
+                            Vector3.forward, 0
+                            );
+                        meshesToCombine.Add(ci);
+                    }
+
+                    //Intersection SOUTH Wall
+                    if (!wallGrid.GetSafe(x, z -1).connectedNorth) {
+                        ci = new CombineInstance();
+                        ci.mesh = GetIntersectionWall(
+                            new Vector3(x - halfThickness, 0f, z - halfThickness),
+                            new Vector3(x + halfThickness, wallHeight, z - halfThickness),
+                            -Vector3.forward, 0
+                            );
+                        meshesToCombine.Add(ci);
+                    }
+
                 }
             }
         }
-
-        //Debug.Log("V:" + vertex.Count + ", T:" + triangles.Count + ", N:" + normals.Count + ", UV:" + uvs.Count);
-
-        /*wallMesh.vertices = vertices.ToArray();
-        wallMesh.SetTriangles(triangles.ToArray(), 0);
-        wallMesh.normals = normals.ToArray();
-        wallMesh.uv = uvs.ToArray();*/
 
         //Debug.Log(meshesToCombine.Count);
         wallMesh.CombineMeshes(meshesToCombine.ToArray(), true, false, false);
@@ -282,7 +319,7 @@ public class MeshBuilder {
 
     }
 
-    static Mesh GetSidePlane(Vector3 bottomLeftPos, Vector3 topRightPos, Vector3 normal, int subMesh) {
+    static Mesh GetWallPlane(Vector3 bottomLeftPos, Vector3 topRightPos, Vector3 normal, int subMesh, float uvLeftOff, float uvRightOff) {
         Mesh planeMesh = new Mesh();
 
         //Initialize the Lists
@@ -315,8 +352,8 @@ public class MeshBuilder {
         normals.Add(normal); normals.Add(normal);
 
         //Añadir los mapas UV para las texturas
-        uvs.Add(new Vector2(0, 0)); uvs.Add(new Vector2(0, 1));
-        uvs.Add(new Vector2(1, 1)); uvs.Add(new Vector2(1, 0));
+        uvs.Add(new Vector2(0 + uvLeftOff, 0)); uvs.Add(new Vector2(0 + uvLeftOff, 1));
+        uvs.Add(new Vector2(1 - uvRightOff, 1)); uvs.Add(new Vector2(1 - uvRightOff, 0));
 
         planeMesh.vertices = vertices.ToArray();
         planeMesh.SetTriangles(triangles.ToArray(), 0);
@@ -324,6 +361,43 @@ public class MeshBuilder {
         planeMesh.uv = uvs.ToArray();
 
         return planeMesh;
+    }
+
+    static Mesh GetWallPlane(Vector3 bottomLeftPos, Vector3 topRightPos, Vector3 normal, int subMesh) {
+        return GetWallPlane(bottomLeftPos, topRightPos, normal, subMesh, 0f, 0f);
+    }
+
+    static Mesh GetIntersectionWall(Vector3 bottomLeftPos, Vector3 topRightPos, Vector3 normal, int subMesh) {
+        List<CombineInstance> combineInstances = new List<CombineInstance>();
+
+        Vector3 topLeftPos = new Vector3(bottomLeftPos.x, topRightPos.y, bottomLeftPos.z);
+        Vector3 topRightPosLeftPart = topLeftPos + (topRightPos - topLeftPos).normalized * (topRightPos - topLeftPos).magnitude * 0.5f;
+
+        Vector3 bottomRightPos = new Vector3(topRightPos.x, bottomLeftPos.y, topRightPos.z);
+        Vector3 bottomLeftPosRightPart = bottomLeftPos + (bottomRightPos - bottomLeftPos).normalized * (bottomRightPos - bottomLeftPos).magnitude * 0.5f;
+
+        //Left part
+        CombineInstance ci = new CombineInstance();
+        ci.mesh = GetWallPlane(
+            bottomLeftPos,
+            topRightPosLeftPart,
+            normal, subMesh,
+            1f - wallThickness * 0.5f, 
+            0f);
+        combineInstances.Add(ci);
+
+        //Right part
+        ci = new CombineInstance();
+        ci.mesh = GetWallPlane(
+            bottomLeftPosRightPart,
+            topRightPos,
+            normal, subMesh,
+            0f,
+            1f - wallThickness * 0.5f);
+        combineInstances.Add(ci);
+
+        Mesh mesh = new Mesh(); mesh.CombineMeshes(combineInstances.ToArray(), true, false, false);
+        return mesh;
     }
 
     static Mesh GetPlane(Vector3 bl, Vector3 tl, Vector3 tr, Vector3 br, Vector3 normal, int subMesh) {
