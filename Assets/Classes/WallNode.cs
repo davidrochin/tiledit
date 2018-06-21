@@ -25,5 +25,9 @@ public class WallNode {
         eastOuterMaterialId = materialId;
     }
 
+    public bool IsConnected() {
+        return connectedNorth || connectedEast;
+    }
+
     public WallNode() : this(false, false) { }
 }

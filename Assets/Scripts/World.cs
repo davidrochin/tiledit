@@ -9,7 +9,7 @@ public class World : MonoBehaviour {
     public int sizeX = 64;
     public int sizeZ = 64;
 
-    [Header("Arrays")]
+    [Header("Grids")]
     public FloorGrid floorGrid;
     public WallGrid wallGrid;
 
@@ -56,8 +56,11 @@ public class World : MonoBehaviour {
     }
 
     public void LoadTestRoom() {
-        floorGrid = new FloorGrid(5, 8);
-        wallGrid = new WallGrid(6, 9);
+
+        sizeX = 5; sizeZ = 8;
+
+        floorGrid = new FloorGrid(sizeX, sizeZ);
+        wallGrid = new WallGrid(sizeX + 1, sizeZ + 1);
 
         //Place Floor
         for (int x = 0; x < floorGrid.GetLength(0); x++) {
@@ -89,7 +92,8 @@ public class World : MonoBehaviour {
     }
 
     private void OnDrawGizmos() {
-
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireCube(new Vector3(transform.position.x + sizeX * 0.5f, transform.position.y, transform.position.z + sizeZ * 0.5f), new Vector3(sizeX, 0f, sizeZ));
     }
 
 }
