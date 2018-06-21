@@ -59,6 +59,14 @@ public class FloorGrid : ISerializableGrid<FloorInfo> {
         return true;
     }
 
+    public FloorInfo GetSafe(int x, int y) {
+        if (!InRange(x, y)) {
+            return new FloorInfo();
+        } else {
+            return this[x, y];
+        }
+    }
+
     public FloorInfo this[int colIndex, int rowIndex] {
         get { return cols[colIndex].rows[rowIndex]; }
         set { cols[colIndex].rows[rowIndex] = (FloorInfo)value; }

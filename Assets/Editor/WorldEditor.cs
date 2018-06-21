@@ -32,8 +32,23 @@ public class WorldEditor : Editor {
 
     public override void OnInspectorGUI() {
 
+        World world = (World)target;
+
         //Draw default inspector
         base.OnInspectorGUI();
+
+        GUILayout.Label("Configuration", EditorStyles.boldLabel);
+
+        EditorGUI.BeginChangeCheck();
+        EditorGUILayout.BeginHorizontal();
+        EditorGUILayout.PrefixLabel("Size");
+        world.sizeX = EditorGUILayout.IntField(world.sizeX);
+        world.sizeZ = EditorGUILayout.IntField(world.sizeZ);
+        EditorGUILayout.EndHorizontal();
+        if (EditorGUI.EndChangeCheck()) {
+            world.Resize();
+            world.Rebuild();
+        }
 
         GUILayout.Label("Editor", EditorStyles.boldLabel);
 
@@ -68,12 +83,12 @@ public class WorldEditor : Editor {
         GUILayout.Label("Debug", EditorStyles.boldLabel);
         GUILayout.BeginHorizontal();
         if (GUILayout.Button("Rebuild all")) {
-            ((World)target).RebuildFloor();
-            ((World)target).RebuildWalls();
+            world.RebuildFloor();
+            world.RebuildWalls();
             SetSceneDirty();
         }
         if (GUILayout.Button("Load Test Room")) {
-            ((World)target).LoadTestRoom();
+            world.LoadTestRoom();
             SetSceneDirty();
         }
         GUILayout.EndHorizontal();

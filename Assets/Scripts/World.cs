@@ -31,6 +31,24 @@ public class World : MonoBehaviour {
         RebuildFloor();*/
 	}
 
+    public void Resize() {
+        FloorGrid oldFloorGrid = floorGrid;
+        WallGrid oldWallGrid = wallGrid;
+
+        //Resize floor grid
+        floorGrid = new FloorGrid(sizeX, sizeZ);
+        for(int x = 0; x < sizeX; x++) {
+            for (int z = 0; z < sizeZ; z++) {
+                if(floorGrid.InRange(x, z) && oldFloorGrid.InRange(x, z)) {
+                    floorGrid[x, z] = oldFloorGrid[x, z];
+                }
+            }
+        }
+
+        //Resize wall grid
+        wallGrid = new WallGrid(sizeX + 1, sizeZ + 1);
+    }
+
     public void RebuildFloor() {
 
         Mesh floorMesh = MeshBuilder.GenerateFloorMesh(floorGrid);
@@ -49,6 +67,11 @@ public class World : MonoBehaviour {
         meshFilter.mesh = wallMesh;
         meshFilter.GetComponent<MeshRenderer>().material = MaterialBank.GetWallMaterial(3);
 
+    }
+
+    public void Rebuild() {
+        RebuildFloor();
+        RebuildWalls();
     }
 
     public void ClearMeshes() {
